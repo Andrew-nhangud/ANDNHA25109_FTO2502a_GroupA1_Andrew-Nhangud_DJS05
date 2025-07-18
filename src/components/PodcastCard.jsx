@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { useNavigate } from 'react-router-dom';
 
 /**
  * PodcastCard component for displaying individual podcast information.
@@ -10,8 +11,15 @@ import PropTypes from 'prop-types';
  * @returns {JSX.Element} The rendered PodcastCard component.
  */
 const PodcastCard = ({ podcast, onSelect }) => {
+  const navigate = useNavigate(); // Use useNavigate instead of useHistory
+
+  const handleClick = () => {
+    onSelect(podcast); // Set the selected podcast
+    navigate(`/podcast/${podcast.id}`); // Navigate to the dynamic route
+  };
+
   return (
-    <div className="innerPodcast-card" onClick={() => onSelect(podcast)}>
+    <div className="innerPodcast-card" onClick={handleClick}>
       <img 
         src={podcast.image} 
         alt={`Cover art for ${podcast.title}`} 
