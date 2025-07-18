@@ -6,6 +6,9 @@ import axios from 'axios';
 /**
  * FullScreenModal component for displaying podcast details in full screen.
  * 
+ * This component fetches and displays detailed information about a specific podcast,
+ * including its seasons and episodes. It also provides a button to close the modal.
+ * 
  * @param {Object} props - Component props.
  * @param {Object} props.podcast - The podcast data to display.
  * @param {boolean} props.isOpen - Whether the modal is open.
@@ -13,30 +16,32 @@ import axios from 'axios';
  * @returns {JSX.Element|null} The rendered FullScreenModal component or null if closed.
  */
 const FullScreenModal = ({ podcast, isOpen, onClose }) => {
-  const [expandedSeason, setExpandedSeason] = useState(null);
-  const [seasonsData, setSeasonsData] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [expandedSeason, setExpandedSeason] = useState(null); // State to track which season is expanded
+  const [seasonsData, setSeasonsData] = useState([]); // State to hold seasons data
+  const [isLoading, setIsLoading] = useState(true); // Loading state for fetching seasons data
+  const [error, setError] = useState(null); // Error state for handling fetch errors
 
+  // Effect to fetch seasons data when the podcast prop changes
   useEffect(() => {
     const fetchSeasonsData = async () => {
       if (podcast) {
         try {
-          setIsLoading(true);
+          setIsLoading(true); // Set loading state
           const response = await axios.get(`https://podcast-api.netlify.app/id/${podcast.id}`);
           setSeasonsData(response.data.seasons); // Set seasonsData to the seasons array
-          setError(null);
+          setError(null); // Clear any previous errors
         } catch (err) {
-          setError("Failed to load seasons data. Please try again later.");
+          setError("Failed to load seasons data. Please try again later."); // Set error message
         } finally {
-          setIsLoading(false);
+          setIsLoading(false); // Reset loading state
         }
       }
     };
 
-    fetchSeasonsData();
+    fetchSeasonsData(); // Call the fetch function
   }, [podcast]);
 
+  // Return null if the modal is not open or if no podcast is provided
   if (!isOpen || !podcast) return null;
 
   return (

@@ -11,8 +11,9 @@ import { useNavigate } from 'react-router-dom';
  * @returns {JSX.Element} The rendered PodcastCard component.
  */
 const PodcastCard = ({ podcast, onSelect }) => {
-  const navigate = useNavigate(); // Use useNavigate instead of useHistory
+  const navigate = useNavigate(); // Hook for navigation
 
+  // Handle click event to navigate to podcast details
   const handleClick = () => {
     onSelect(podcast); // Set the selected podcast
     navigate(`/podcast/${podcast.id}`); // Navigate to the dynamic route

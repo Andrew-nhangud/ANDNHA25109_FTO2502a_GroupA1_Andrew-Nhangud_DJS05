@@ -12,16 +12,27 @@ import { genres } from './data/data';
 import { formatDate } from './utils/utils';
 import { usePodcastContext } from './PodcastContext';
 
+/**
+ * Main App component that fetches and displays podcasts.
+ * 
+ * This component manages the state for podcasts, loading status, error messages,
+ * and the currently selected podcast. It also handles filtering and pagination
+ * of the podcast list.
+ * 
+ * @returns {JSX.Element} The rendered App component.
+ */
 const App = () => {
-  const [podcasts, setPodcasts] = useState([]);
-  const [filteredPodcasts, setFilteredPodcasts] = useState([]);
-  const [displayedPodcasts, setDisplayedPodcasts] = useState([]);
-  const [selectedPodcast, setSelectedPodcast] = useState(null);
-  const [isFullScreenModalOpen, setIsFullScreenModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [noResultsMessage, setNoResultsMessage] = useState('');
+  // State variables
+  const [podcasts, setPodcasts] = useState([]); // All podcasts
+  const [filteredPodcasts, setFilteredPodcasts] = useState([]); // Podcasts after filtering
+  const [displayedPodcasts, setDisplayedPodcasts] = useState([]); // Podcasts to display on the current page
+  const [selectedPodcast, setSelectedPodcast] = useState(null); // Currently selected podcast for modal
+  const [isFullScreenModalOpen, setIsFullScreenModalOpen] = useState(false); // State for full-screen modal visibility
+  const [isLoading, setIsLoading] = useState(true); // Loading state
+  const [error, setError] = useState(null); // Error state
+  const [noResultsMessage, setNoResultsMessage] = useState(''); // Message for no results
 
+  // Context values for search, genre, sort, pagination
   const {
     searchTerm, setSearchTerm,
     selectedGenre, setSelectedGenre,
@@ -30,11 +41,14 @@ const App = () => {
     podcastsPerPage
   } = usePodcastContext();
 
+  // Effect to fetch podcasts from the API
   useEffect(() => {
     const fetchPodcasts = async () => {
       try {
-        setIsLoading(true);
+        setIsLoading(true); // Set loading state
         const response = await axios.get('https://podcast-api.netlify.app/');
+        
+        // Map response data to include genre titles and formatted dates
         const podcastsWithGenres = response.data.map(podcast => ({
           ...podcast,
           genres: podcast.genres.map(genreId => 
@@ -42,36 +56,41 @@ const App = () => {
           ).filter(Boolean),
           updated: formatDate(podcast.updated)
         }));
-        setPodcasts(podcastsWithGenres);
-        setFilteredPodcasts(podcastsWithGenres);
-        setError(null);
+        
+        setPodcasts(podcastsWithGenres); // Set podcasts state
+        setFilteredPodcasts(podcastsWithGenres); // Set filtered podcasts state
+        setError(null); // Clear any previous errors
       } catch (err) {
         console.error("Error fetching podcasts:", err);
-        setError("Failed to load podcasts. Please try again later.");
+        setError("Failed to load podcasts. Please try again later."); // Set error message
       } finally {
-        setIsLoading(false);
+        setIsLoading(false); // Reset loading state
       }
     };
 
-    fetchPodcasts();
+    fetchPodcasts(); // Call the function directly within the useEffect
   }, []);
 
+  // Effect to filter podcasts based on search term and selected genre
   useEffect(() => {
     const filterPodcasts = () => {
-      let filtered = [...podcasts];
+      let filtered = [...podcasts]; // Start with all podcasts
 
+      // Filter by search term
       if (searchTerm) {
         filtered = filtered.filter(podcast =>
           podcast.title.toLowerCase().includes(searchTerm.toLowerCase())
         );
       }
 
+      // Filter by selected genre
       if (selectedGenre) {
         filtered = filtered.filter(podcast => 
           podcast.genres.some(genre => genre.id === parseInt(selectedGenre))
         );
       }
 
+      // Sort podcasts based on selected sort option
       if (sortOption) {
         switch(sortOption) {
           case 'latest':
@@ -91,32 +110,36 @@ const App = () => {
         }
       }
 
-      setFilteredPodcasts(filtered);
-      setNoResultsMessage(filtered.length === 0 ? 'No podcasts found matching your criteria.' : '');
+      setFilteredPodcasts(filtered); // Update filtered podcasts state
+      setNoResultsMessage(filtered.length === 0 ? 'No podcasts found matching your criteria.' : ''); // Set no results message
     };
 
-    filterPodcasts();
+    filterPodcasts(); // Call the filter function
   }, [searchTerm, selectedGenre, sortOption, podcasts]);
 
+  // Effect to handle pagination
   useEffect(() => {
-    const indexOfLastPodcast = currentPage * podcastsPerPage;
-    const indexOfFirstPodcast = indexOfLastPodcast - podcastsPerPage;
-    setDisplayedPodcasts(filteredPodcasts.slice(indexOfFirstPodcast, indexOfLastPodcast));
+    const indexOfLastPodcast = currentPage * podcastsPerPage; // Calculate index of last podcast
+    const indexOfFirstPodcast = indexOfLastPodcast - podcastsPerPage; // Calculate index of first podcast
+    setDisplayedPodcasts(filteredPodcasts.slice(indexOfFirstPodcast, indexOfLastPodcast)); // Set displayed podcasts for current page
   }, [filteredPodcasts, currentPage, podcastsPerPage]);
 
-  const { id } = useParams();
-  const navigate = useNavigate();
+  // Get podcast ID from URL
+  const { id } = useParams(); // Extract podcast ID from URL
+  const navigate = useNavigate(); // Hook for navigation
 
+  // Effect to open modal based on URL
   useEffect(() => {
     if (id) {
       const selectedPodcast = podcasts.find(podcast => podcast.id === id);
       if (selectedPodcast) {
-        setSelectedPodcast(selectedPodcast);
-        setIsFullScreenModalOpen(true);
+        setSelectedPodcast(selectedPodcast); // Set the selected podcast
+        setIsFullScreenModalOpen(true); // Open the full-screen modal
       }
     }
   }, [id, podcasts]);
 
+  // Function to handle pagination
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   return (
