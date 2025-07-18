@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+// src/components/FullScreenModal.jsx
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { formatDate } from '../utils/utils';
+import axios from 'axios';
 
 /**
  * FullScreenModal component for displaying podcast details in full screen.
@@ -13,19 +14,30 @@ import { formatDate } from '../utils/utils';
  */
 const FullScreenModal = ({ podcast, isOpen, onClose }) => {
   const [expandedSeason, setExpandedSeason] = useState(null);
+  const [seasonsData, setSeasonsData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  if (!isOpen || !podcast) return null; // Return null if modal is not open or no podcast data
+  useEffect(() => {
+    const fetchSeasonsData = async () => {
+      if (podcast) {
+        try {
+          setIsLoading(true);
+          const response = await axios.get(`https://podcast-api.netlify.app/id/${podcast.id}`);
+          setSeasonsData(response.data.seasons); // Set seasonsData to the seasons array
+          setError(null);
+        } catch (err) {
+          setError("Failed to load seasons data. Please try again later.");
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
 
-  const seasonsArray = Array.from({ length: podcast.seasons }, (_, i) => ({
-    id: i + 1,
-    title: `Season ${i + 1}`,
-    episodes: 0
-  }));
+    fetchSeasonsData();
+  }, [podcast]);
 
-  // Toggle the expanded season
-  const toggleSeason = (seasonId) => {
-    setExpandedSeason(expandedSeason === seasonId ? null : seasonId);
-  };
+  if (!isOpen || !podcast) return null;
 
   return (
     <div className={`full-screen-modal ${isOpen ? 'show' : ''}`}>
@@ -70,35 +82,50 @@ const FullScreenModal = ({ podcast, isOpen, onClose }) => {
 
         <div className="seasons-episodes-section">
           <h3>Seasons and Episodes</h3>
-          
-          {podcast.seasons > 0 ? (
+          {isLoading ? (
+            <div className="loading-container">
+              <div className="loading-spinner"></div>
+              <p>Loading seasons...</p>
+            </div>
+          ) : error ? (
+            <div className="error-container">
+              <p className="error-message">{error}</p>
+            </div>
+          ) : (
             <div className="seasons-list">
-              {seasonsArray.map((season) => (
-                <div key={season.id} className="season-item">
+              {seasonsData.map((season) => (
+                <div key={season.season} className="season-item">
                   <div 
                     className="season-header" 
-                    onClick={() => toggleSeason(season.id)}
-                    aria-expanded={expandedSeason === season.id}
+                    onClick={() => setExpandedSeason(expandedSeason === season.season ? null : season.season)}
+                    aria-expanded={expandedSeason === season.season}
                   >
                     <span className="season-title">{season.title}</span>
                     <span className="episodes-count">
-                      {season.episodes} episode{season.episodes !== 1 ? 's' : ''}
+                      {season.episodes.length} episode{season.episodes.length !== 1 ? 's' : ''}
                     </span>
                   </div>
                   
-                  {expandedSeason === season.id && (
+                  {expandedSeason === season.season && (
                     <div className="season-episodes">
-                      <div className="episode-placeholder">
-                        Episode information coming soon! Check back later for updates.
-                      </div>
+                      {season.episodes.map((episode) => (
+                        <div key={episode.episode} className="episode-item">
+                          <img src={season.image} alt={`Cover image for ${season.title}`} className="episode-season-image" />
+                          <div className="episode-details">
+                            <span className="episode-number">Episode {episode.episode}</span>
+                            <span className="episode-title">{episode.title}</span>
+                            <p className="episode-description">{episode.description || "No description available."}</p>
+                            <audio controls>
+                              <source src={episode.file} type="audio/mpeg" />
+                              Your browser does not support the audio element.
+                            </audio>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
               ))}
-            </div>
-          ) : (
-            <div className="no-seasons">
-              This podcast currently has no seasons available
             </div>
           )}
         </div>
@@ -112,14 +139,6 @@ FullScreenModal.propTypes = {
     id: PropTypes.string,
     title: PropTypes.string,
     image: PropTypes.string,
-    genres: PropTypes.arrayOf(
-      PropTypes.shape({
-        id: PropTypes.number,
-        title: PropTypes.string
-      })
-    ),
-    seasons: PropTypes.number,
-    updated: PropTypes.string,
     description: PropTypes.string
   }),
   isOpen: PropTypes.bool.isRequired,
